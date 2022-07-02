@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GaijinZ/go-microservice/handlers"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -16,8 +17,18 @@ func main() {
 
 	productHandler := handlers.NewProducts(l)
 
-	sm := http.NewServeMux()
-	sm.Handle("/", productHandler)
+	sm := mux.NewRouter()
+
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", productHandler.GetProducts)
+
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", productHandler.UpdateProducts)
+	putRouter.Use(productHandler.MiddlewareProductValidation)
+
+	postRouter := sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", productHandler.AddProduct)
+	postRouter.Use(productHandler.MiddlewareProductValidation)
 
 	s := &http.Server{
 		Addr:         ":9090",
